@@ -31,6 +31,36 @@ public class TimingAttack {
 		 
 		 int dLength = keys[1].bitLength();
 		 System.out.println("bit length of d is " + dLength);
+		 
+		 TimingAttack attack = new TimingAttack();
+		 int attackingTimes = 50;
+		 int attackingTimes_Mont = 50;
+		 int expectVal = attack.binaryD[1];
+
+		 //Kocher's attack
+		 int success1 = 0;
+		 for(int i = 0; i < attackingTimes; i++) {
+		 int[] guessD = new int[] {1,0};		 
+		 attack.KocherAttackV2(guessD, 1);
+		 if(guessD[1] == expectVal) {
+			 success1 ++;
+		 }
+		 }
+		  
+		 System.out.println("Accuracy of Kocher's attack is : " + success1*1.0/(attackingTimes*1.0));
+		 
+		 
+		 int success2 = 0;
+		 for(int i = 0; i < attackingTimes_Mont; i++) {
+		 int[] guessD = new int[] {1};		 
+		 int res = attack.attackOnMontgomery(guessD);
+		 if(res == expectVal) {
+			 success2 ++;
+		 }
+		 }
+		  
+		 System.out.println("Accuracy of improved Kocher's attack is : " + success2*1.0/(attackingTimes_Mont*1.0));
+		 
     
 	 
     }
