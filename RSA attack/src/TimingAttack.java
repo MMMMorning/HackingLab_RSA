@@ -49,7 +49,7 @@ public class TimingAttack {
 		  
 		 System.out.println("Accuracy of Kocher's attack is : " + success1*1.0/(attackingTimes*1.0));
 		 
-		 
+		 //improved Kocher's attack
 		 int success2 = 0;
 		 for(int i = 0; i < attackingTimes_Mont; i++) {
 		 int[] guessD = new int[] {1};		 
@@ -91,7 +91,7 @@ public class TimingAttack {
 	}
 	
 	
-    //function to generate Y and Z
+    //function to generate message between a range
 	public static BigInteger generateMessage(BigInteger maxLimit, BigInteger minLimit) {
 		BigInteger difference = maxLimit.subtract(minLimit);
 		 System.out.println("generating progress");
@@ -289,11 +289,11 @@ public class TimingAttack {
 	    //generate random C[] = [C0,C1,..... Cj]
 		int numberOfMsg = 1000;//10000;
 		double[] accumulatedTime = new double[] {0.0, 0.0, 0.0, 0.0}; 
+		int[] numberOfIterations= new int[] {0,0,0,0};
 		
 		for(int i = 0; i < numberOfMsg; i++) {
 	        BigInteger randomMsg = new BigInteger(n.bitLength() - 1, new Random());
 	        BigInteger tempMsg= system.Montgomery_ExpMod(randomMsg, knownD, n);
-	        tempMsg = tempMsg.pow(2).mod(n);
 	        
 	        //Call oracle to set group for tempMsg
 	        int[] group = setGroup(randomMsg, tempMsg, r);
@@ -305,12 +305,13 @@ public class TimingAttack {
 	        
 	        for(int val: group) {
 	        	accumulatedTime[val] += time;
+	        	numberOfIterations[val] ++;
 	        }
 		}
 		
 		double[] averageTime = new double[4];
 		for(int i = 0; i< averageTime.length;i++ ) {
-			averageTime[i] = accumulatedTime[i]/numberOfMsg;
+			averageTime[i] = accumulatedTime[i]/numberOfIterations[i];
 		}
 		
 		int guessingBit = 0;
@@ -321,11 +322,13 @@ public class TimingAttack {
 		return guessingBit;    	
     }
     
-    public static int[] setGroup(BigInteger msg, BigInteger temp, BigInteger r) {
+    public static int[] setGroup(BigInteger msg, BigInteger base, BigInteger r) {
     	BigInteger r_inverse = r.modInverse(n);
     	BigInteger n_inverse = n.modInverse(r).multiply(BigInteger.valueOf(-1));
     	
-    	BigInteger temp_r = temp.multiply(r).mod(n);
+    	BigInteger base_r = base.multiply(r).mod(n);
+    	//temp = (base^b)^2
+    	BigInteger temp = system.Montgomery_multiply(base_r, base_r, r, n);
     	
     	//index 0: the situation when the next bit of d is 0
     	//index 1: the situation when the next bit of d is 1
@@ -333,13 +336,13 @@ public class TimingAttack {
     	
     	//If the next bit is 0:
     	//no extra multiplication,only consider temp^2
-    	if(hasExtraReduction(temp_r,temp_r,r,n)) {
+    	if(hasExtraReduction(temp,temp,r,n)) {
     		group[0] = 1;
     	}
     	
     	//If the next bit is 1:
     	//(temp*msg)^2
-    	BigInteger BitIsOne = system.Montgomery_multiply(temp_r, msg, r, n);
+    	BigInteger BitIsOne = system.Montgomery_multiply(temp, msg, r, n);
     	if(hasExtraReduction(BitIsOne,BitIsOne,r,n)) {
     		group[1] = 3;
     	}else {
