@@ -293,9 +293,10 @@ public class TimingAttack {
 		for(int i = 0; i < numberOfMsg; i++) {
 	        BigInteger randomMsg = new BigInteger(n.bitLength() - 1, new Random());
 	        BigInteger tempMsg= system.Montgomery_ExpMod(randomMsg, knownD, n);
+	        tempMsg = tempMsg.pow(2).mod(n);
 	        
 	        //Call oracle to set group for tempMsg
-	        int[] group = setGroup(tempMsg, r);
+	        int[] group = setGroup(randomMsg, tempMsg, r);
 	        
 	        double begin = System.nanoTime();
 	        system.Montgomery_ExpMod(randomMsg, binaryD, n);
@@ -313,34 +314,33 @@ public class TimingAttack {
 		}
 		
 		int guessingBit = 0;
-		if((averageTime[1]-averageTime[0])>(averageTime[3]-averageTime[2])) {
+		if((averageTime[1]-averageTime[0])<(averageTime[3]-averageTime[2])) {
 			guessingBit = 1;
 		}
 		
 		return guessingBit;    	
     }
     
-    public static int[] setGroup(BigInteger temp, BigInteger r) {
+    public static int[] setGroup(BigInteger msg, BigInteger temp, BigInteger r) {
     	BigInteger r_inverse = r.modInverse(n);
     	BigInteger n_inverse = n.modInverse(r).multiply(BigInteger.valueOf(-1));
     	
     	BigInteger temp_r = temp.multiply(r).mod(n);
-    	BigInteger res = system.Montgomery_multiply(temp_r, temp_r, r, n);
     	
     	//index 0: the situation when the next bit of d is 0
     	//index 1: the situation when the next bit of d is 1
     	int[] group = new int[] {0,0}; //initial the return set
     	
     	//If the next bit is 0:
-    	//no extra multiplication
-    	if(hasExtraReduction(res,res,r,n)) {
+    	//no extra multiplication,only consider temp^2
+    	if(hasExtraReduction(temp_r,temp_r,r,n)) {
     		group[0] = 1;
     	}
     	
     	//If the next bit is 1:
-    	//There is an extra multiplication of mes_r and res
-    	BigInteger bitIsOne = system.Montgomery_multiply(res, temp_r, r, n);
-    	if(hasExtraReduction(bitIsOne,bitIsOne,r,n)) {
+    	//(temp*msg)^2
+    	BigInteger BitIsOne = system.Montgomery_multiply(temp_r, msg, r, n);
+    	if(hasExtraReduction(BitIsOne,BitIsOne,r,n)) {
     		group[1] = 3;
     	}else {
     		group[1] =2;
